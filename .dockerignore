@@ -1,0 +1,9 @@
+.git
+model
+out
+jenkins
+k8s
+grafana
+terraform
+gke-kubeconfig
+**/__pycache__

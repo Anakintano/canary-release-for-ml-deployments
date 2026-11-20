@@ -1,0 +1,7 @@
+model/
+out/
+__pycache__/
+.pytest_cache/
+gke-kubeconfig
+terraform/.terraform/
+terraform/terraform.tfstate*

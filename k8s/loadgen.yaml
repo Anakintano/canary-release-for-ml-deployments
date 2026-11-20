@@ -1,0 +1,31 @@
+# Steady fake customer traffic through ingress-nginx, so the 90/10 split and the metrics are real.
+# Code comes from the `loadgen` ConfigMap (scripts/loadgen.py + ml/data.py), created by demo.sh.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadgen
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: loadgen}
+  template:
+    metadata:
+      labels: {app: loadgen}
+    spec:
+      containers:
+        - name: loadgen
+          image: python:3.11.11-slim
+          workingDir: /app
+          command: [python, -m, scripts.loadgen, http://ingress-nginx-controller.ingress-nginx, "8"]
+          env: [{name: PYTHONDONTWRITEBYTECODE, value: "1"}]
+          volumeMounts: [{name: code, mountPath: /app}]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+      volumes:
+        - name: code
+          configMap:
+            name: loadgen
+            items:
+              - {key: loadgen.py, path: scripts/loadgen.py}
+              - {key: data.py, path: ml/data.py}

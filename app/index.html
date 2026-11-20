@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket Router</title>
+<style>
+  :root {
+    --bg: #f4f5f9; --card: #fff; --text: #141722; --muted: #6b7180; --line: #e4e6ee; --soft: #eef0f6;
+    --accent: #4f46e5; --accent-hover: #4338ca; --error: #dc2626; --error-bg: #fef2f2;
+    --billing: #d97706; --technical: #2563eb; --account: #9333ea; --shipping: #059669;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1016; --card: #161a22; --text: #e7eaf0; --muted: #8d94a3; --line: #262b36; --soft: #1e232d;
+      --error-bg: #2a1416; --shadow: 0 8px 24px rgba(0, 0, 0, .35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 64px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; flex: none;
+    background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff; font-weight: 700; font-size: 18px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card);
+    font-size: 12px; color: var(--muted);
+  }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 16px; }
+  label { display: block; font-weight: 600; margin-bottom: 8px; }
+  textarea {
+    width: 100%; min-height: 120px; resize: vertical; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; align-items: center; }
+  .examples span { color: var(--muted); font-size: 13px; margin-right: 2px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--soft); color: var(--text); border-radius: 999px;
+    padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .actions { display: flex; align-items: center; gap: 12px; }
+  .actions small { color: var(--muted); }
+  #submit {
+    background: var(--accent); color: #fff; border: 0; border-radius: 10px; padding: 10px 20px;
+    font: inherit; font-weight: 600; cursor: pointer;
+  }
+  #submit:hover { background: var(--accent-hover); }
+  #submit:disabled { opacity: .6; cursor: wait; }
+  #result[hidden], #error[hidden] { display: none; }
+  .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 6px; }
+  .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  #category { font-size: 28px; font-weight: 700; text-transform: capitalize; display: flex; align-items: center; gap: 10px; }
+  #category::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--cat, var(--accent)); }
+  #team { color: var(--muted); font-size: 14px; }
+  #percent { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bar { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; margin: 10px 0 14px; }
+  .bar > div { height: 100%; width: 0; border-radius: inherit; background: var(--cat, var(--accent)); transition: width .5s ease; }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .meta b { color: var(--text); font-weight: 600; }
+  .tag { border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+  .scores { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+  .row { display: grid; grid-template-columns: 90px 1fr 48px; align-items: center; gap: 10px; font-size: 13px; }
+  .row .bar { margin: 0; height: 6px; }
+  .row span:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+  #error { border-color: var(--error); background: var(--error-bg); color: var(--error); font-weight: 500; }
+  footer { margin-top: 28px; text-align: center; font-size: 12px; color: var(--muted); }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo">T</div>
+    <div>
+      <h1>Ticket Router</h1>
+      <p>Routes a support ticket to the right team. Canary release demo.</p>
+    </div>
+    <span class="pill" id="serving">connecting.</span>
+  </header>
+
+  <section class="card">
+    <label for="ticket">Customer message</label>
+    <textarea id="ticket" placeholder="e.g. I was charged twice for my Pro plan, please refund"></textarea>
+    <div class="examples">
+      <span>Try:</span>
+      <button class="chip" type="button">Charged ?499 twice for my plan ??</button>
+      <button class="chip" type="button">App crashes when I open search on my Android phone</button>
+      <button class="chip" type="button">OTP is not coming to my phone</button>
+      <button class="chip" type="button">My order #482913 has not arrived yet</button>
+    </div>
+    <div class="actions">
+      <button id="submit" type="button">Classify</button>
+      <small>or Ctrl + Enter</small>
+    </div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <p class="eyebrow">Predicted category</p>
+    <div class="top">
+      <div>
+        <div id="category"></div>
+        <div id="team"></div>
+      </div>
+      <div id="percent"></div>
+    </div>
+    <div class="bar"><div id="confidence"></div></div>
+    <div class="meta">
+      <span class="tag">answered by model <b id="version"></b></span>
+      <span class="tag"><b id="latency"></b> ms</span>
+    </div>
+    <div class="scores" id="scores"></div>
+  </section>
+
+  <section class="card" id="error" hidden></section>
+
+  <footer><a href="/metrics">/metrics</a> � <a href="/healthz">/healthz</a> � synthetic training data</footer>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const TEAMS = { billing: "Payments team", technical: "Engineering support", account: "Account security", shipping: "Logistics team" };
+  const color = (c) => `var(--${c}, var(--accent))`;
+
+  fetch("/healthz").then((r) => r.json()).then((h) => { $("serving").textContent = "page served by v" + h.version; })
+    .catch(() => { $("serving").textContent = "offline"; });
+
+  document.querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
+    $("ticket").value = chip.textContent;
+    classify();
+  }));
+  $("submit").addEventListener("click", classify);
+  $("ticket").addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) classify(); });
+
+  async function classify() {
+    const text = $("ticket").value.trim();
+    if (!text) return $("ticket").focus();
+    $("submit").disabled = true;
+    $("submit").textContent = "Classifying.";
+    $("error").hidden = true;
+    const started = performance.now();
+    try {
+      const r = await fetch("/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Request failed (HTTP ${r.status})`);
+      show(data, Math.round(performance.now() - started));
+    } catch (e) {
+      $("result").hidden = true;
+      $("error").textContent = e.message;
+      $("error").hidden = false;
+    } finally {
+      $("submit").disabled = false;
+      $("submit").textContent = "Classify";
+    }
+  }
+
+  function show(data, ms) {
+    const result = $("result");
+    result.style.setProperty("--cat", color(data.category));
+    $("category").textContent = data.category;
+    $("team").textContent = "Route to " + (TEAMS[data.category] || data.category);
+    $("percent").textContent = Math.round(data.confidence * 100) + "%";
+    $("version").textContent = "v" + data.version;
+    $("latency").textContent = ms;
+    $("confidence").style.width = "0";
+    const rows = Object.entries(data.scores).sort((a, b) => b[1] - a[1]).map(([name, p]) => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = '<span></span><div class="bar"><div></div></div><span></span>';
+      row.children[0].textContent = name;
+      row.children[1].firstChild.style.cssText = `width:${p * 100}%;background:${color(name)}`;
+      row.children[2].textContent = Math.round(p * 100) + "%";
+      return row;
+    });
+    $("scores").replaceChildren(...rows);
+    result.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => { $("confidence").style.width = data.confidence * 100 + "%"; }));
+  }
+</script>
+</body>
+</html>
